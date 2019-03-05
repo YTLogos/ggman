@@ -3,10 +3,10 @@
 
 # R package to create manhattan plots using ggplot 
 
-##Note: 
+## Note: 
 The package is currently under development.  Please raise issues for any bugs you identify.
 
-##Version
+## Version
 
 0.99.0.beta
 
@@ -17,7 +17,7 @@ library(devtools)
 install_github("drveera/ggman")
 ```
 
-##Quick Reference 
+## Quick Reference 
 
 Please refer to package vignette and the wiki page for detailed information on the usage. 
 
