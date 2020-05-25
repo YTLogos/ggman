@@ -19,11 +19,18 @@ genetracks.refseq <- function(){
 
     ##query
     mysession = browserSession("UCSC")
+    ##to check which tracks are available
+    ##track.names <- trackNames(ucscTableQuery(mySession))
+    ##track.names[grep("Gene",names(track.names))]
+    ##get table  names
+    ##tableNames(ucscTableQuery(mysession, track="ensGene"))
     genome(mysession) <- genome
-
+    ##trackname <- "ensGene"
+    trackname <- "wgEncodeGencodeV19"
+    tablename <- "wgEncodeGencodeBasicV19"
     mytable <- getTable(ucscTableQuery(mysession,
-                                       track = "refGene",
-                                       table="refGene",
+                                       track = trackname,
+                                       table=tablename,
                                        range=myrange))
 
     ##column classes
@@ -43,7 +50,7 @@ genetracks.refseq <- function(){
     ## list the name2
     name2 <- with(mytable, as.character(name2[!duplicated(name2)]))
 
-    stacks <- rep((-1 * (1:stack.level)),length(name2))[1:length(name2)]
+    stacks <- rep((-1 * stackfactor* (1:stack.level)),length(name2))[1:length(name2)]
     stack.dfm <- data.frame(name2,stacks)
 
     ##add to mytable
@@ -77,7 +84,9 @@ genetracks.refseq <- function(){
     exontable$exon.start <- as.numeric(as.character(exontable$exon.start))
     exontable$exon.end <- as.numeric(as.character(exontable$exon.end))
 
-
+    ## alter gene and exon width according to stackfactor
+    gene.width=gene.width*stackfactor
+    exon.width=exon.width*stackfactor
     ##calculate genetracks size
     genetable$gene.ymax <- genetable$stacks + (gene.width/2)
     genetable$gene.ymin <- genetable$stacks - (gene.width/2)
@@ -86,6 +95,7 @@ genetracks.refseq <- function(){
 
 
     ##plot
+    p1 <- p1 + geom_hline(yintercept = 0, colour="grey", width=0.5)
     p1 <-
         p1+
         geom_rect(data= genetable,
@@ -99,7 +109,7 @@ genetracks.refseq <- function(){
               axis.line = element_line(colour = "grey")) +
         scale_fill_grey(start=0.3,end=0.7) + labs(fill="strand")
     if (gene.position == "bottom"){
-            p1 <-  p1 + geom_text(data = genetable,aes(x = midpoint,y=-0.3+gene.ymin, label = name2, angle = 0), size = gene.text.size, nudge_x = 0, nudge_y =0,
+            p1 <-  p1 + geom_text(data = genetable,aes(x = midpoint,y=-(0.3*(stackfactor))+gene.ymin, label = name2, angle = 0), size = gene.text.size, nudge_x = 0, nudge_y =0,
                    check_overlap = remove.gene.text.overlap, inherit.aes = FALSE) 
     } else if (gene.position == "left"){
             p1 <-  p1 + geom_text(data = genetable,aes(x = txStart - 10000 ,y = gene.ymin + (gene.ymax - gene.ymin)/2, label = name2, angle = 0, hjust = "right"), size = gene.text.size, nudge_x = 0, nudge_y =0,
@@ -116,5 +126,21 @@ genetracks.refseq <- function(){
                                                 ymax = ymax, fill = as.factor(strand)),
                           alpha = 0.03,inherit.aes = FALSE) 
     }
-    p1 + scale_y_continuous(breaks = 0:ymax+1, labels = 0:ymax+1, limits = c(-1-(as.numeric(stack.level)), ymax)) 
+    axbreaks <- 0:ymax+1
+    if(length(axbreaks)>10){
+      axbreaks <- round(seq(0,ymax+1,length.out = 10))
+    }
+    p1 <- p1 + scale_y_continuous(breaks = axbreaks, labels = axbreaks, limits = c((-1-(as.numeric(stack.level)))*stackfactor, ymax))
+    if(!is.na(point.legend.title)){
+      scm = c(point.color)
+      names(scm) = point.legend.name
+      p1 <- p1 + geom_point(aes(color=point.legend.name),...)+
+        scale_color_manual(name=point.legend.title,
+                           values=scm)
+    }
+    class(p1) <- append(class(p1),"ggman")
+    p1 <- list(plot=p1,
+               point.legend.title=point.legend.title,
+               scm=scm)
+    return(p1)
 }
